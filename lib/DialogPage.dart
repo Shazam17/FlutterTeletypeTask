@@ -2,10 +2,13 @@ import 'package:dash_chat/dash_chat.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
-
+import 'package:flutter_app/DialogModel.dart';
+import 'package:image_picker/image_picker.dart';
 
 class MyDialogWidget extends StatefulWidget {
-  MyDialogWidget({Key key}) : super(key: key);
+  DialogCard dialogCard;
+
+  MyDialogWidget({Key key, this.dialogCard}) : super(key: key);
 
   @override
   MyDialogPageWidgetState createState() {
@@ -22,28 +25,47 @@ class MyDialogPageWidgetState extends State<MyDialogWidget> {
     avatar: "https://www.wrappixel.com/ampleadmin/assets/images/users/4.jpg",
   );
 
-  final ChatUser otherUser = ChatUser(
-    name: "Mrfatty",
-    uid: "25649654",
-  );
-  List<ChatMessage> messages = [
-    ChatMessage(
-        id: "1",
-        user: ChatUser(
-          name: "Fayeed",
-          firstName: "Fayeed",
-          lastName: "Pawaskar",
-          uid: "12345678",
-          avatar:
-          "https://www.wrappixel.com/ampleadmin/assets/images/users/4.jpg",
-        ),
-        text: "Text")
-  ];
+  ChatUser otherUser;
+  List<ChatMessage> messages = List<ChatMessage>();
+
+  @override
+  void initState() {
+    otherUser = ChatUser(
+        name: widget.dialogCard.name,
+        uid: "25649654",
+        avatar: widget.dialogCard.imageUrl);
+    List<ChatMessage> messagesTemp = [];
+    widget.dialogCard.otherMessages.forEach((element) {
+      messagesTemp.add(ChatMessage(
+          id: "1",
+          user: otherUser,
+          text: element.message,
+          createdAt: element.time,
+          image: element.image));
+    });
+
+    widget.dialogCard.myMessages.forEach((element) {
+      messagesTemp.add(ChatMessage(
+          id: "1", user: user, text: element.message, createdAt: element.time));
+    });
+    messagesTemp.sort((ChatMessage a, ChatMessage b) =>
+       a.createdAt.compareTo(b.createdAt)
+    );
+    messages.addAll(messagesTemp);
+  }
 
   void onSend(ChatMessage message) async {
     print(message.toJson());
     setState(() {
-      messages.add(ChatMessage(id: "1", user: user, text: message.text));
+      messages.add(ChatMessage(
+          id: "1", user: user, text: message.text, createdAt: DateTime.now()));
+      Future.delayed(Duration(milliseconds: 500), () {
+        messages.add(ChatMessage(
+            id: "1",
+            user: otherUser,
+            text: "ответ",
+            createdAt: DateTime.now()));
+      });
     });
   }
 
@@ -65,22 +87,25 @@ class MyDialogPageWidgetState extends State<MyDialogWidget> {
             children: [
               Container(
                 margin: EdgeInsets.only(right: 10),
-                height: 45,
-                padding: EdgeInsets.all(5),
-                child: ClipOval(
-                  child: Image.network("http://ivanbask.com/img/coders.jpg"),
-                ),
+                height: 38,
+                width: 38,
+                child: CircleAvatar(
+                    backgroundImage: NetworkImage(widget.dialogCard.imageUrl)),
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    "Покупатель",
-                    style: TextStyle(color: Colors.black),
+                  Container(
+                    width: 200,
+                    child: Text(
+                      widget.dialogCard.name,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: Colors.black,fontSize: 16),
+                    ),
                   ),
                   Container(
                     padding:
-                    EdgeInsets.only(left: 5, right: 5, top: 1, bottom: 1),
+                        EdgeInsets.only(left: 5, right: 5, top: 1, bottom: 1),
                     child: Text(
                       "WhatsUp",
                       style: TextStyle(fontSize: 12),
@@ -102,27 +127,27 @@ class MyDialogPageWidgetState extends State<MyDialogWidget> {
       ),
       body: SafeArea(
           child: DashChat(
-            onSend: onSend,
-            sendOnEnter: true,
-            trailing: [
-              IconButton(
-                icon: Icon(Icons.photo_album),
-              ),
-              IconButton(
-                icon: Icon(Icons.add),
-              )
-            ],
-            messages: messages,
-            user: user,
-            inputDecoration: InputDecoration(
-              hintText: "Сообщение",
-              fillColor: Colors.grey,
-            ),
-            inputContainerStyle: BoxDecoration(
-
-                border: Border.symmetric(
-                    vertical: BorderSide(width: 1, color: Colors.grey))),
-          )),
+        onSend: onSend,
+        sendOnEnter: true,
+        trailing: [
+          IconButton(
+            onPressed: () async {},
+            icon: Icon(Icons.photo_album),
+          ),
+          IconButton(
+            icon: Icon(Icons.add),
+          )
+        ],
+        messages: messages,
+        user: user,
+        inputDecoration: InputDecoration(
+          hintText: "Сообщение",
+          fillColor: Colors.grey,
+        ),
+        inputContainerStyle: BoxDecoration(
+            border: Border.symmetric(
+                vertical: BorderSide(width: 1, color: Colors.grey))),
+      )),
     );
   }
 }

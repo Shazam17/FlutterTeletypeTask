@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_app/DialogPage.dart';
+import 'package:flutter_app/DialogModel.dart';
 import 'dart:convert';
 
 void main() {
@@ -29,7 +30,7 @@ class MyApp extends StatelessWidget {
 class DialogWidget extends StatelessWidget {
   final String text;
   final String lastMessageTime;
-  final String lastMessage;
+  final Widget lastMessage;
   final String messagerType;
   final String imageUrl;
 
@@ -48,10 +49,14 @@ class DialogWidget extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
         Container(
-          height: 60,
-          width: 60,
+          decoration: BoxDecoration(
+              borderRadius: BorderRadius.all(Radius.circular(25))),
+          height: 50,
+          width: 50,
           margin: EdgeInsets.only(left: 10, right: 10),
-          child: Image.network(imageUrl),
+          child: CircleAvatar(
+            backgroundImage: NetworkImage(imageUrl),
+          ),
         ),
         Container(
           child: Column(
@@ -64,17 +69,21 @@ class DialogWidget extends StatelessWidget {
                   style: TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
                 ),
               ),
+              Container(width: 240, child: lastMessage),
               Container(
-                width: 240,
-                child: Text(
-                  lastMessage,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Container(
+                decoration: BoxDecoration(
+                    color: messagerType == "WHATSAPP"
+                        ? Colors.amberAccent
+                        : Colors.grey,
+                    borderRadius: BorderRadius.all(Radius.circular(5))),
                 padding: EdgeInsets.only(left: 5, right: 5, top: 1, bottom: 1),
-                child: Text(messagerType),
-                color: Colors.amberAccent,
+                child: Text(
+                  messagerType,
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.black38),
+                ),
               )
             ],
           ),
@@ -95,12 +104,6 @@ class DialogWidget extends StatelessWidget {
 class MyTestStateFulWidget extends StatefulWidget {
   MyTestStateFulWidget({Key key, this.title}) : super(key: key);
   final String title;
-
-  final List<String> contactsList = <String>[
-    'Contact1',
-    'Contact2',
-    'Contact3'
-  ];
 
   @override
   MyTestState createState() {
@@ -168,49 +171,6 @@ class EmptyAppBar extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize => Size(0.0, 0.0);
 }
 
-class DialogCard {
-  final String name;
-  final String lastMessage;
-  final String messagerType;
-  final String lastMessageDate;
-  final String imageUrl;
-
-  factory DialogCard.fromJson(Map<String, dynamic> json) {
-    return new DialogCard(
-      name: json['name'].toString(),
-      lastMessage: json['lastMessage'].toString(),
-      messagerType: json['messagerType'].toString(),
-      lastMessageDate: json['lastMessageDate'].toString(),
-      imageUrl: json['imageUrl'].toString(),
-    );
-  }
-
-  DialogCard(
-      {this.name,
-      this.lastMessage,
-      this.messagerType,
-      this.lastMessageDate,
-      this.imageUrl});
-}
-
-class DialogCardList {
-  final List<DialogCard> dialogs;
-
-  DialogCardList({
-    this.dialogs,
-  });
-
-  factory DialogCardList.fromJson(List<dynamic> parsedJson) {
-    List<DialogCard> dialogs = new List<DialogCard>();
-    parsedJson.forEach((element) {
-      dialogs.add(DialogCard.fromJson(element));
-    });
-    return new DialogCardList(
-      dialogs: dialogs,
-    );
-  }
-}
-
 class MyTestState extends State<MyTestStateFulWidget> {
   List<DialogCard> list;
 
@@ -232,55 +192,108 @@ class MyTestState extends State<MyTestStateFulWidget> {
     getDialogsFromLocalJson();
   }
 
+  Future<List<DialogCard>> search(String search) async {
+    List<DialogCard> cards = [];
+    list.forEach((element) {
+      if (element.name.contains(search)) {
+        cards.add(element);
+      }
+    });
+    debugPrint(cards.length.toString());
+    return cards;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: EmptyAppBar(),
-        body: SafeArea(
-          top: true,
-          child: new Column(
-            children: [
-              Container(
-                child: DropDownHeader(),
-              ),
-              Container(
-                alignment: Alignment.center,
-                height: 80,
-                child: SearchBar(
-                  hintText: "Поиск",
-                  searchBarPadding: EdgeInsets.only(left: 30, right: 30),
+        body: Align(
+          alignment: Alignment.topLeft,
+          child: SafeArea(
+            minimum: const EdgeInsets.only(top: 16.0),
+            child: new Column(
+              children: [
+                Container(
+                  child: DropDownHeader(),
                 ),
-              ),
-              Expanded(
-                child: ListView.builder(
-                    padding: const EdgeInsets.all(8),
-                    itemCount: list.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      return GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => MyDialogWidget()));
-                        },
-                        child: Center(
-                          child: Container(
-                              padding: EdgeInsets.only(right: 7),
-                              margin: EdgeInsets.only(top: 15),
-                              height: 60,
-                              child: DialogWidget(
-                                text: list[index].name,
-                                lastMessage: list[index].lastMessage,
-                                messagerType: list[index].messagerType,
-                                lastMessageTime: list[index].lastMessageDate,
-                                imageUrl: list[index].imageUrl,
-                              )),
-                        ),
+                Container(
+                  alignment: Alignment.center,
+                  height: 80,
+                  child: SearchBar<DialogCard>(
+                    onSearch: search,
+                    onItemFound: (DialogCard post, int index) {
+                      return ListTile(
+                        title: Text(post.name),
+                        subtitle: Text("text"),
                       );
-                    }),
-              ),
-            ],
+                    },
+                    hintText: "Поиск",
+                    searchBarPadding: EdgeInsets.only(left: 30, right: 30),
+                  ),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                      padding: const EdgeInsets.all(8),
+                      itemCount: list != null ? list.length : 0,
+                      itemBuilder: (BuildContext context, int index) {
+                        return GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => MyDialogWidget(
+                                          dialogCard: list[index],
+                                        )));
+                          },
+                          child: Center(
+                            child: Container(
+                                padding: EdgeInsets.only(right: 7),
+                                margin: EdgeInsets.only(top: 15),
+                                height: 60,
+                                child: DialogWidget(
+                                  text: list[index].name,
+                                  lastMessage: list[index]
+                                          .myMessages
+                                          .last
+                                          .time
+                                          .isAfter(list[index]
+                                              .otherMessages
+                                              .last
+                                              .time)
+                                      ? RichText(
+                                          overflow: TextOverflow.ellipsis,
+                                          text: TextSpan(children: [
+                                            TextSpan(
+                                                text: "Вы:",
+                                                style: TextStyle(
+                                                    color: Colors.grey)),
+                                            TextSpan(
+                                              text: list[index]
+                                                  .myMessages
+                                                  .last
+                                                  .message,
+                                              style: TextStyle(
+                                                  color: Colors.black),
+                                            )
+                                          ]))
+                                      : Text(
+                                          list[index]
+                                              .otherMessages
+                                              .last
+                                              .message,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                  messagerType: list[index].messagerType,
+                                  lastMessageTime: list[index].myMessages.last.time.hour.toString() + ":" + list[index].myMessages.last.time.minute.toString(),
+                                  imageUrl: list[index].imageUrl,
+                                )),
+                          ),
+                        );
+                      }),
+                ),
+              ],
+            ),
           ),
         ));
   }
