@@ -3,7 +3,10 @@ import 'package:flappy_search_bar/flappy_search_bar.dart';
 import 'package:flappy_search_bar/scaled_tile.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_app/DialogPage.dart';
+import 'dart:convert';
 
 void main() {
   runApp(MyApp());
@@ -28,13 +31,15 @@ class DialogWidget extends StatelessWidget {
   final String lastMessageTime;
   final String lastMessage;
   final String messagerType;
+  final String imageUrl;
 
   const DialogWidget(
       {Key key,
       this.text,
       this.lastMessageTime,
       this.lastMessage,
-      this.messagerType})
+      this.messagerType,
+      this.imageUrl})
       : super(key: key);
 
   @override
@@ -43,11 +48,10 @@ class DialogWidget extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
         Container(
-          padding: EdgeInsets.all(5),
+          height: 60,
+          width: 60,
           margin: EdgeInsets.only(left: 10, right: 10),
-          child: ClipOval(
-            child: Image.network("http://ivanbask.com/img/coders.jpg"),
-          ),
+          child: Image.network(imageUrl),
         ),
         Container(
           child: Column(
@@ -61,7 +65,11 @@ class DialogWidget extends StatelessWidget {
                 ),
               ),
               Container(
-                child: Text(lastMessage),
+                width: 240,
+                child: Text(
+                  lastMessage,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
               Container(
                 padding: EdgeInsets.only(left: 5, right: 5, top: 1, bottom: 1),
@@ -160,130 +168,70 @@ class EmptyAppBar extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize => Size(0.0, 0.0);
 }
 
-class MyDialogWidget extends StatefulWidget {
-  MyDialogWidget({Key key}) : super(key: key);
+class DialogCard {
+  final String name;
+  final String lastMessage;
+  final String messagerType;
+  final String lastMessageDate;
+  final String imageUrl;
 
-  @override
-  MyDialogPageWidgetState createState() {
-    return MyDialogPageWidgetState();
+  factory DialogCard.fromJson(Map<String, dynamic> json) {
+    return new DialogCard(
+      name: json['name'].toString(),
+      lastMessage: json['lastMessage'].toString(),
+      messagerType: json['messagerType'].toString(),
+      lastMessageDate: json['lastMessageDate'].toString(),
+      imageUrl: json['imageUrl'].toString(),
+    );
   }
+
+  DialogCard(
+      {this.name,
+      this.lastMessage,
+      this.messagerType,
+      this.lastMessageDate,
+      this.imageUrl});
 }
 
-class MyDialogPageWidgetState extends State<MyDialogWidget> {
-  final ChatUser user = ChatUser(
-    name: "Fayeed",
-    firstName: "Fayeed",
-    lastName: "Pawaskar",
-    uid: "12345678",
-    avatar: "https://www.wrappixel.com/ampleadmin/assets/images/users/4.jpg",
-  );
+class DialogCardList {
+  final List<DialogCard> dialogs;
 
-  final ChatUser otherUser = ChatUser(
-    name: "Mrfatty",
-    uid: "25649654",
-  );
-  List<ChatMessage> messages = [
-    ChatMessage(
-        id: "1",
-        user: ChatUser(
-          name: "Fayeed",
-          firstName: "Fayeed",
-          lastName: "Pawaskar",
-          uid: "12345678",
-          avatar:
-              "https://www.wrappixel.com/ampleadmin/assets/images/users/4.jpg",
-        ),
-        text: "Text")
-  ];
+  DialogCardList({
+    this.dialogs,
+  });
 
-  void onSend(ChatMessage message) async {
-    print(message.toJson());
-    setState(() {
-      messages.add(ChatMessage(id: "1", user: user, text: message.text));
+  factory DialogCardList.fromJson(List<dynamic> parsedJson) {
+    List<DialogCard> dialogs = new List<DialogCard>();
+    parsedJson.forEach((element) {
+      dialogs.add(DialogCard.fromJson(element));
     });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        centerTitle: false,
-        leading: new IconButton(
-          icon: new Icon(Icons.arrow_back_ios, color: Colors.blue),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        iconTheme: IconThemeData(
-          color: Colors.black, //change your color here
-        ),
-        title: Container(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Container(
-                margin: EdgeInsets.only(right: 10),
-                height: 45,
-                padding: EdgeInsets.all(5),
-                child: ClipOval(
-                  child: Image.network("http://ivanbask.com/img/coders.jpg"),
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Покупатель",
-                    style: TextStyle(color: Colors.black),
-                  ),
-                  Container(
-                    padding:
-                        EdgeInsets.only(left: 5, right: 5, top: 1, bottom: 1),
-                    child: Text(
-                      "WhatsUp",
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    color: Colors.amberAccent,
-                  )
-                ],
-              )
-            ],
-          ),
-        ),
-        backgroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.info_outline),
-            onPressed: () {},
-          )
-        ],
-      ),
-      body: SafeArea(
-          child: DashChat(
-        onSend: onSend,
-        sendOnEnter: true,
-        trailing: [
-          IconButton(
-            icon: Icon(Icons.photo_album),
-          ),
-          IconButton(
-            icon: Icon(Icons.add),
-          )
-        ],
-        messages: messages,
-        user: user,
-        inputDecoration: InputDecoration(
-          hintText: "Сообщение",
-          fillColor: Colors.grey,
-        ),
-        inputContainerStyle: BoxDecoration(
-
-            border: Border.symmetric(
-                vertical: BorderSide(width: 1, color: Colors.grey))),
-      )),
+    return new DialogCardList(
+      dialogs: dialogs,
     );
   }
 }
 
 class MyTestState extends State<MyTestStateFulWidget> {
+  List<DialogCard> list;
+
+  void getDialogsFromLocalJson() {
+    loadPeoples().then((data) {
+      Map<String, dynamic> decoded = jsonDecode(data);
+      List<dynamic> decodedList = decoded["list"] as List;
+      setState(() {
+        list = DialogCardList.fromJson(decodedList).dialogs;
+      });
+    });
+  }
+
+  Future<String> loadPeoples() async {
+    return await rootBundle.loadString("assets/peoples.json");
+  }
+
+  MyTestState() {
+    getDialogsFromLocalJson();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -306,9 +254,10 @@ class MyTestState extends State<MyTestStateFulWidget> {
               Expanded(
                 child: ListView.builder(
                     padding: const EdgeInsets.all(8),
-                    itemCount: widget.contactsList.length,
+                    itemCount: list.length,
                     itemBuilder: (BuildContext context, int index) {
                       return GestureDetector(
+                        behavior: HitTestBehavior.opaque,
                         onTap: () {
                           Navigator.push(
                               context,
@@ -321,10 +270,11 @@ class MyTestState extends State<MyTestStateFulWidget> {
                               margin: EdgeInsets.only(top: 15),
                               height: 60,
                               child: DialogWidget(
-                                text: 'Entry ${widget.contactsList[index]}',
-                                lastMessage: "lastMessage",
-                                messagerType: "WhatsUp",
-                                lastMessageTime: "сейчас",
+                                text: list[index].name,
+                                lastMessage: list[index].lastMessage,
+                                messagerType: list[index].messagerType,
+                                lastMessageTime: list[index].lastMessageDate,
+                                imageUrl: list[index].imageUrl,
                               )),
                         ),
                       );
@@ -333,51 +283,5 @@ class MyTestState extends State<MyTestStateFulWidget> {
             ],
           ),
         ));
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
-  final String title;
-
-  @override
-  _MyHomePageState createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
-    );
   }
 }
